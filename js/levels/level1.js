@@ -17,7 +17,9 @@ export default {
     shell.vfs.write(accessKey, "VAULT-READY\n");
     shell.vfs.write(`${WORKSPACE}/mission.txt`, "The recovery token is not in the ordinary listing.\n");
   },
-  observe({ event }) {
-    return event.name === "cat" && event.reads.includes(accessKey) && Boolean(event.stdout);
+  observe({ shell, state, event }) {
+    if (event.revealed.includes(WORKSPACE)) state.workspaceRevealed = true;
+    return state.workspaceRevealed === true && shell.revealed.has(WORKSPACE)
+      && event.name === "cat" && event.reads.includes(accessKey) && Boolean(event.stdout);
   },
 };

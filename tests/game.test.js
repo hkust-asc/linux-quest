@@ -69,7 +69,32 @@ test("all supported commands have --help, man, and tldr documentation", () => {
   assert.equal(shell.run("unknown-command --help").code, 1);
 });
 
-test("level 1 reveals and reads vault with ls -al and -la solutions", () => {
+test("level 1 requires a successful workspace reveal before reading the vault key", () => {
+  for (const commands of [
+    ["cat .vault/.access_key"],
+    ["cat /home/cadet/workspace/.vault/.access_key"],
+    ["cd .vault", "cat .access_key"],
+    ["ls -a .vault", "cat .vault/.access_key"],
+    ["cat .vault/.access_key | ls -a"],
+  ]) {
+    const game = unlocked(1);
+    assert.doesNotMatch(game.run("ls").stdout, /\.vault/);
+    run(game, commands);
+    assert.equal(game.isComplete(1), false, commands.join("; "));
+  }
+
+  const game = unlocked(1);
+  assert.notEqual(game.run("ls -a . missing").code, 0);
+  assert.match(game.run("cat .vault/.access_key").stdout, /VAULT-READY/);
+  assert.equal(game.isComplete(1), false);
+  run(game, ["cd ~"]);
+  assert.match(game.run("ls -a ~/workspace").stdout, /\.vault/);
+  assert.equal(game.isComplete(1), false);
+  run(game, ["cat workspace/.vault/.access_key"]);
+  assert.ok(game.isComplete(1));
+});
+
+test("level 1 reveals and reads vault with ls -al, -la and -a -l solutions", () => {
   for (const flags of ["-al", "-la", "-a -l"]) {
     const game = unlocked(1);
     assert.doesNotMatch(game.run("ls").stdout, /\.vault/);
