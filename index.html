@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Supercomputer Cadet: Linux X-Ray</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">&gt;_</span>
+      <div>
+        <p class="eyebrow">ASC TEAM <span> / </span> CADET TRAINING</p>
+        <h1>Supercomputer Cadet: <span>Linux X-Ray</span></h1>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="progress-label" for="progress"><span id="progress-label">0 / 6 Missions</span><progress id="progress" max="6" value="0"></progress></label>
+      <button id="open-codex" type="button">Codex <span id="badge" class="badge">0</span></button>
+      <button id="reset" type="button" class="muted-button">Reset Progress</button>
+    </div>
+  </header>
+  <main>
+    <nav class="mission-nav" aria-label="Missions">
+      <span class="eyebrow">ACT 01 / MISSION SELECT</span>
+      <div id="missions" class="mission-buttons"></div>
+    </nav>
+    <div class="dashboard">
+      <div class="workstation">
+        <section class="panel mission" aria-labelledby="mission-title">
+          <div class="mission-meta"><p id="mission-index" class="eyebrow"></p><span id="mission-status" class="status"></span></div>
+          <h2 id="mission-title"></h2>
+          <p id="objective"></p>
+          <details id="hints"><summary>Mission hints</summary><div id="hint-list"></div></details>
+          <div id="audit" class="audit" hidden></div>
+          <section id="certificate" class="certificate" hidden></section>
+          <div class="mission-complete" id="mission-complete" hidden>
+            <strong>Mission complete. Codex updated.</strong>
+            <button type="button" id="next">Next mission →</button>
+          </div>
+        </section>
+        <section class="panel terminal" aria-labelledby="terminal-title">
+          <div class="panel-heading"><h2 id="terminal-title">Cadet terminal</h2><span class="connection">● SIMULATION LIVE</span></div>
+          <div class="xray"><span class="eyebrow">COMMAND X-RAY</span><div id="xray" class="chips"></div></div>
+          <div id="output" class="output" role="log" aria-label="Terminal output" tabindex="0"></div>
+          <form id="command-form" class="prompt-row" autocomplete="off">
+            <label id="prompt" for="command" aria-label="Terminal command"></label>
+            <input id="command" type="text" aria-label="Terminal command" spellcheck="false" autocapitalize="off" autocomplete="off" autofocus>
+          </form>
+          <div class="terminal-footer"><span><kbd>Tab</kbd> Complete</span><span><kbd>↑</kbd> <kbd>↓</kbd> History</span><span><kbd>Ctrl</kbd>+<kbd>L</kbd> Clear</span></div>
+        </section>
+      </div>
+      <section class="panel visualizer" aria-labelledby="visualizer-title">
+        <div class="panel-heading"><h2 id="visualizer-title">X-Ray visualizers</h2><span class="module-indicator">LIVE STATE</span></div>
+        <div id="tabs" role="tablist" aria-label="Visualizers">
+          <button type="button" role="tab" id="tab-tree" aria-controls="view" data-view="tree">Filesystem Tree</button>
+          <button type="button" role="tab" id="tab-streams" aria-controls="view" data-view="streams">Stream Plumber</button>
+          <button type="button" role="tab" id="tab-env" aria-controls="view" data-view="env">$PATH Radar</button>
+          <button type="button" role="tab" id="tab-processes" aria-controls="view" data-view="processes">System Telemetry</button>
+        </div>
+        <div id="view" role="tabpanel" tabindex="0"></div>
+      </section>
+    </div>
+    <footer>ASC Team <span> / </span> Act 1: Linux fundamentals <span> / </span> All commands run in a browser simulation.</footer>
+  </main>
+  <dialog id="codex" aria-labelledby="codex-title">
+    <div class="panel-heading"><h2 id="codex-title">Cadet Codex · Known Unknowns</h2><form method="dialog"><button>Close</button></form></div>
+    <div id="codex-entries"></div>
+  </dialog>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
