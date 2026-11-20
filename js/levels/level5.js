@@ -10,10 +10,13 @@ export default {
   ],
   cards: ["signals", "login-node", "hardware"],
   setup(shell) { shell.processes.push({ ...runaway }); },
-  observe({ shell, state, event }) {
+  observe({ shell, state, event, report }) {
     if (["lscpu", "free"].includes(event.name)) state.hardware = true;
     if (event.seenPids?.includes(runaway.pid)) state.located = true;
-    if (event.killed === runaway.pid && state.located) state.stopped = true;
+    if (event.killed === runaway.pid) {
+      if (state.located) state.stopped = true;
+      else report("Mission 05: The job stopped before you identified it with ps. Select Mission 05 again to restart this simulation.");
+    }
     return state.hardware && state.stopped && !shell.processes.some(proc => proc.pid === runaway.pid);
   },
 };

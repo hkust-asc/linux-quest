@@ -1,5 +1,5 @@
 import { commands, pathCommands } from "./commands.js";
-import { basename, createVFS, HOME, resolvePath, WORKSPACE } from "./vfs.js";
+import { basename, createVFS, HOME, isExecutable, resolvePath, WORKSPACE } from "./vfs.js";
 import { builtinNames, describe, lookup } from "./etymology.js";
 import { expandWord, parse, parseFlags, tokenize } from "./parser.js";
 
@@ -37,8 +37,7 @@ export class Shell {
   }
 
   executable(path) {
-    const entry = this.vfs.get(path);
-    return entry?.type === "file" && Boolean(entry.mode & 0o100);
+    return isExecutable(this.vfs.get(path));
   }
 
   find(name) {
@@ -126,6 +125,7 @@ export class Shell {
           const write = this.vfs.openOutput(path, redirect.operator === ">>");
           sinks[stream] = { stream, path, operator: redirect.operator, write };
         }
+        event.vfsAtExecution = this.vfs.snapshot();
         const output = this.execute(event);
         if (typeof output === "string") event.stdout = output;
         else if (output) Object.assign(event, output);

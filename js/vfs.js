@@ -13,12 +13,18 @@ export function resolvePath(path, cwd = WORKSPACE) {
 
 export const basename = path => path.split("/").at(-1) || "/";
 export const dirname = path => path.slice(0, path.lastIndexOf("/")) || "/";
+export const isExecutable = entry => entry?.type === "file" && Boolean(entry.mode & 0o100);
 
 export class VFS {
   entries = new Map([["/", { type: "directory", mode: 0o755 }]]);
 
   get(path) {
     return this.entries.get(path);
+  }
+
+  snapshot() {
+    const entries = new Map([...this.entries].map(([path, entry]) => [path, Object.freeze({ ...entry })]));
+    return Object.freeze({ get: path => entries.get(path) });
   }
 
   mkdir(path, parents = false) {
