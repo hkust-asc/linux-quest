@@ -10,7 +10,7 @@ import { Shell } from "../js/shell.js";
 import { expandWord, tokenize } from "../js/parser.js";
 import { HOME, WORKSPACE } from "../js/vfs.js";
 
-test("Level 2 completion and feedback depend on each observable install requirement, not file identity", () => {
+test("Level 2 observer needs only execution evidence, not the live shell or file identity", () => {
   const bin = `${HOME}/bin`;
   const download = `${HOME}/downloads/diag.sh`;
   const installed = `${bin}/diag.sh`;
@@ -34,11 +34,29 @@ test("Level 2 completion and feedback depend on each observable install requirem
     const event = { cwd: bin, name: "./diag.sh", executed: installed, stdout: success };
     const feedback = [];
     breakCondition({ shell, text, event });
-    assert.equal(level2.observe({ shell, event, report: message => feedback.push(message) }), !guidance, condition);
+    event.vfsAtExecution = shell.vfs.snapshot();
+    assert.equal(level2.observe({ event, report: message => feedback.push(message) }), !guidance, condition);
     if (guidance) assert.match(feedback.join("\n"), guidance, condition);
     else assert.deepEqual(feedback, [], condition);
     event.stdout = "";
-    assert.equal(level2.observe({ shell, event, report: assert.fail }), false, `${condition}: no success output`);
+    assert.equal(level2.observe({ event, report: assert.fail }), false, `${condition}: no success output`);
+  }
+});
+
+test("stage filesystem evidence reflects execution after redirect setup and before mutations", () => {
+  const shell = new Shell();
+  const path = `${WORKSPACE}/note`;
+  for (const command of ["chmod +x note", "rm note"]) {
+    assert.equal(shell.run("echo original > note").code, 0);
+    const result = shell.run(`${command} | echo replacement > note`);
+    assert.deepEqual(result.stages.map(stage => stage.code), [0, 0]);
+    const [beforeMutation, afterRedirect] = result.stages.map(stage => stage.vfsAtExecution.get(path));
+    assert.deepEqual([beforeMutation.text, beforeMutation.mode], ["original\n", 0o644]);
+    assert.deepEqual([afterRedirect.text, afterRedirect.mode], ["", command.startsWith("chmod") ? 0o755 : 0o644]);
+    assert.equal(shell.vfs.file(path).text, "replacement\n");
+    assert.ok(Object.isFrozen(beforeMutation));
+    assert.ok(Object.isFrozen(afterRedirect));
+    shell.vfs.remove(path);
   }
 });
 

@@ -1,4 +1,4 @@
-import { HOME, resolvePath } from "../vfs.js";
+import { HOME, isExecutable, resolvePath } from "../vfs.js";
 
 const download = `${HOME}/downloads/diag.sh`;
 const bin = `${HOME}/bin`;
@@ -18,7 +18,7 @@ export default {
   setup(shell) {
     shell.vfs.write(download, diagnostic);
   },
-  observe({ shell, event, report }) {
+  observe({ event, report }) {
     if (!event.stdout.includes(success)) return false;
     const path = event.executed ?? (
       ["source", "."].includes(event.name) && event.args[0] ? resolvePath(event.args[0], event.cwd) : null
@@ -26,10 +26,11 @@ export default {
     if (path !== installed && path !== download) return false;
 
     const missing = [];
-    if (shell.vfs.get(download)) missing.push("A copy still exists at ~/downloads/diag.sh.");
-    if (shell.vfs.get(installed)?.text !== diagnostic) {
+    const installedAtLaunch = event.vfsAtExecution.get(installed);
+    if (event.vfsAtExecution.get(download)) missing.push("A copy still exists at ~/downloads/diag.sh.");
+    if (installedAtLaunch?.text !== diagnostic) {
       missing.push("Install the downloaded diagnostic script, unchanged, at ~/bin/diag.sh.");
-    } else if (!shell.executable(installed)) {
+    } else if (!isExecutable(installedAtLaunch)) {
       missing.push("Make ~/bin/diag.sh executable with chmod +x.");
     }
     if (event.cwd !== bin) missing.push("Change to ~/bin before running the script.");

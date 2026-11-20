@@ -8,7 +8,7 @@ AccessKey == "/home/cadet/workspace/.vault/.access_key"
 Bin == "/home/cadet/bin"
 Download == "/home/cadet/downloads/diag.sh"
 Installed == "/home/cadet/bin/diag.sh"
-Idle == [name |-> "", path |-> "", output |-> "", awarded |-> FALSE]
+Idle == [name |-> "", path |-> "", output |-> "", launchDownload |-> "", awarded |-> FALSE]
 Success == "Diagnostic passed: simulated node is ready."
 
 Init ==
@@ -70,32 +70,44 @@ DiagnosticContent == installed \in {"moved", "copied"}
 Relative(command) == command \in {"./diag.sh", "./../bin/diag.sh"}
 Qualified(event) ==
   /\ event.output = Success /\ event.path = Installed /\ Relative(event.name)
-  /\ cwd = Bin /\ executable /\ download = "" /\ DiagnosticContent
+  /\ cwd = Bin /\ executable /\ event.launchDownload = "" /\ DiagnosticContent
 
-RunDiagnostic(command) ==
+RunDiagnostic(command, launchDownload, finalDownload) ==
   LET sourced == command = "source ~/bin/diag.sh"
       direct == installed /= "absent" /\ executable /\ ~sourced
       output == IF direct \/ (installed /= "absent" /\ sourced) THEN Success ELSE ""
-      base == [name |-> command, path |-> IF direct THEN Installed ELSE "", output |-> output, awarded |-> FALSE]
+      base == [name |-> command, path |-> IF direct THEN Installed ELSE "", output |-> output,
+               launchDownload |-> launchDownload, awarded |-> FALSE]
+      observedDownload == IF Variant = "pipeline" THEN finalDownload ELSE launchDownload
       accept == output = Success /\ direct /\ Relative(command) /\ cwd = Bin
-                /\ (download = "" \/ Variant = "leftover")
+                /\ (observedDownload = "" \/ Variant = "leftover")
                 /\ (DiagnosticContent \/ Variant = "content")
                 /\ (installed = "moved" \/ Variant /= "identity")
   IN /\ level = 2
      /\ last' = [base EXCEPT !.awarded = accept /\ ~complete]
      /\ complete' = (complete \/ accept)
-     /\ UNCHANGED <<level, revealed, tokenRead, download, installed, executable, cwd>>
+     /\ download' = finalDownload
+     /\ UNCHANGED <<level, revealed, tokenRead, installed, executable, cwd>>
 
 LaunchRelative ==
-  IF cwd = Bin THEN RunDiagnostic("./diag.sh") ELSE RunDiagnostic("./../bin/diag.sh")
-LaunchAbsolute == RunDiagnostic(Installed)
-SourceDiagnostic == RunDiagnostic("source ~/bin/diag.sh")
+  RunDiagnostic(IF cwd = Bin THEN "./diag.sh" ELSE "./../bin/diag.sh", download, download)
+LaunchAbsolute == RunDiagnostic(Installed, download, download)
+SourceDiagnostic == RunDiagnostic("source ~/bin/diag.sh", download, download)
+
+LaunchThenRemove ==
+  /\ cwd = Bin /\ download = Download
+  /\ RunDiagnostic("./diag.sh", download, "")
+
+RemoveThenLaunch ==
+  /\ cwd = Bin /\ download = Download
+  /\ RunDiagnostic("./diag.sh", "", "")
 
 Next ==
   \/ RevealWorkspace \/ ReadToken \/ SelectMission02
   \/ MoveDownload \/ CopyDownload \/ RemoveDownload \/ SetExecuteBit
   \/ OverwriteWithEcho \/ ChangeToBin \/ ChangeToWorkspace
   \/ LaunchRelative \/ LaunchAbsolute \/ SourceDiagnostic
+  \/ LaunchThenRemove \/ RemoveThenLaunch
 
 RevealBeforeRead == level = 1 /\ tokenRead => revealed
 InstallSoundness == last.awarded => Qualified(last)

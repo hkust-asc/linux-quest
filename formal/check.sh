@@ -5,7 +5,7 @@ root=$(cd -- "$(dirname -- "$0")" && pwd)
 model=${1:-}
 variant=${2:-fixed}
 case "$model:$variant" in
-  Mission:fixed|Mission:reveal|Mission:leftover|Mission:identity|Mission:content|\
+  Mission:fixed|Mission:reveal|Mission:leftover|Mission:identity|Mission:content|Mission:pipeline|\
   Shell:fixed|Shell:quotes|Shell:partial|\
   VFS:fixed|VFS:alias|VFS:root|\
   Audit:fixed|Audit:advance|Audit:execute) ;;

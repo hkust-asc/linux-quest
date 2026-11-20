@@ -6,14 +6,17 @@ export function state(current) {
     if (current.tokenRead) return "Mission 01 complete";
     return current.revealed ? "Workspace revealed" : "Workspace hidden";
   }
-  if (current.last.awarded && current.download) return "Credited with download still present";
+  if (current.last.awarded && current.last.launchDownload) {
+    return current.download ? "Credited with download still present" : "Credited after a late pipeline removal";
+  }
   if (current.last.awarded && current.installed === "echo only") return "Replacement script credited";
   if (current.complete) return "Mission 02 complete";
   if (current.installed === "absent") return current.download ? "Download only" : "Diagnostic missing";
   if (current.installed === "echo only") return "Replacement script installed";
   if (current.download) return "Both copies present";
   if (!current.executable) return "Installed, not executable";
-  if (!current.last.awarded && current.last.name === "./diag.sh" && current.last.path && current.installed === "copied") {
+  if (!current.last.awarded && current.last.name === "./diag.sh" && current.last.path
+      && !current.last.launchDownload && current.installed === "copied") {
     return "Copy cleaned up but successful launch not credited";
   }
   return "Installed and executable";
@@ -33,12 +36,17 @@ const labels = {
   LaunchRelative: "run relative executable",
   LaunchAbsolute: "run absolute executable",
   SourceDiagnostic: "source the script",
+  LaunchThenRemove: "launch, then remove download",
+  RemoveThenLaunch: "remove download, then launch",
 };
 
 export function step(action, before, after) {
   if (action === "Transfer") return after.download ? labels.CopyDownload : labels.MoveDownload;
   if (action === "ChangeDirectory") return after.cwd.endsWith("/bin") ? labels.ChangeToBin : labels.ChangeToWorkspace;
   if (action === "RunDiagnostic") {
+    if (before.download && !after.download) {
+      return after.last.launchDownload ? labels.LaunchThenRemove : labels.RemoveThenLaunch;
+    }
     if (after.last.name.startsWith("source ")) return labels.SourceDiagnostic;
     return after.last.name.startsWith("./") ? labels.LaunchRelative : labels.LaunchAbsolute;
   }

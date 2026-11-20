@@ -143,6 +143,30 @@ test("level 2 explains both successful cp-only launches, then completes after re
   assert.ok(game.isComplete(2));
 });
 
+for (const [command, completes] of [
+  ["./diag.sh | rm ~/downloads/diag.sh", false],
+  ["rm ~/downloads/diag.sh | ./diag.sh", true],
+]) {
+  test(`level 2 checks download presence at launch: ${command}`, () => {
+    const game = unlocked(2);
+    run(game, ["cp ~/downloads/diag.sh ~/bin", "cd ~/bin", "chmod +x diag.sh"]);
+    const download = `${HOME}/downloads/diag.sh`;
+    assert.ok(game.shell.vfs.get(download));
+
+    const result = game.run(command);
+    assert.deepEqual(result.stages.map(stage => stage.code), [0, 0]);
+    assert.match(result.stages.find(stage => stage.name === "./diag.sh").stdout, /Diagnostic passed/);
+    assert.equal(game.shell.vfs.get(download), undefined);
+    assert.equal(result.completed, completes);
+    assert.equal(game.isComplete(2), completes);
+    if (completes) assert.deepEqual(result.feedback, []);
+    else {
+      assert.match(result.feedback.join("\n"), /still exists at ~\/downloads\/diag\.sh/);
+      assert.ok(game.run("./diag.sh").completed);
+    }
+  });
+}
+
 test("level 2 explains wrong launch directory, absolute launch and sourcing without execute permission", () => {
   const game = unlocked(2);
   run(game, ["mv ~/downloads/diag.sh ~/bin"]);

@@ -22,4 +22,4 @@ After review, a repository maintainer can configure GitHub Pages to serve the ro
 
 Run `node --test` from the repository root. Tests use Node's built-in runner and import the same ES modules as the browser.
 
-Run `node --test tests/play.test.js tests/contracts.test.js` for deterministic Act 1 replays and structural contract checks. For bounded TLA+ checks, run `bash formal/check.sh Mission`, `bash formal/check.sh Shell`, `bash formal/check.sh VFS`, or `bash formal/check.sh Audit`. The project-local skills in `.agents/skills/` describe coverage, limits, and negative controls for each check.
+Run `node --test` for the full suite, including deterministic Act 1 replays and structural contract checks. For bounded TLA+ checks, run `bash formal/check.sh Mission`, `bash formal/check.sh Shell`, `bash formal/check.sh VFS`, or `bash formal/check.sh Audit`. The Mission model checks both orders of the diagnostic launch and download removal in a single pipe; `bash formal/check.sh Mission pipeline` demonstrates why looking at the final filesystem is too late. The project-local skills in `.agents/skills/` describe coverage, limits, and negative controls for each check.
