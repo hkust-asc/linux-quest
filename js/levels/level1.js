@@ -17,9 +17,11 @@ export default {
     shell.vfs.write(accessKey, "VAULT-READY\n");
     shell.vfs.write(`${WORKSPACE}/mission.txt`, "The recovery token is not in the ordinary listing.\n");
   },
-  observe({ shell, state, event }) {
+  observe({ shell, state, event, report }) {
     if (event.revealed.includes(WORKSPACE)) state.workspaceRevealed = true;
-    return state.workspaceRevealed === true && shell.revealed.has(WORKSPACE)
-      && event.name === "cat" && event.reads.includes(accessKey) && Boolean(event.stdout);
+    if (event.name !== "cat" || !event.reads.includes(accessKey) || !event.stdout) return false;
+    if (state.workspaceRevealed === true && shell.revealed.has(WORKSPACE)) return true;
+    report("Mission 01: Reveal the hidden entries in ~/workspace with ls -a, then read the token again.");
+    return false;
   },
 };

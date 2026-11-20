@@ -17,20 +17,26 @@ export function tokenize(input, { partial = false } = {}) {
     }
     const segments = [];
     let quote = "";
+    let segment;
     while (index < input.length) {
       const char = input[index];
       if (!quote && /[\s|>]/.test(char)) break;
       index++;
       if (char === "\\" && quote !== "'" && index < input.length) {
         segments.push({ text: input[index++], expand: false });
+        segment = undefined;
       } else if (char === quote) {
         quote = "";
+        segment = undefined;
       } else if (!quote && (char === '"' || char === "'")) {
         quote = char;
+        segment = undefined;
       } else {
-        const expand = quote !== "'";
-        if (segments.at(-1)?.expand === expand) segments.at(-1).text += char;
-        else segments.push({ text: char, expand });
+        if (!segment) {
+          segment = { text: "", expand: quote !== "'" };
+          segments.push(segment);
+        }
+        segment.text += char;
       }
     }
     if (quote && !partial) throw new Error("unclosed quote");

@@ -107,7 +107,7 @@ test("level 1 reveals and reads vault with ls -al, -la and -a -l solutions", () 
   }
 });
 
-test("level 2 requires original script moved, executable, and run as ./", () => {
+test("level 2 completes after moving the diagnostic and launching it from bin", () => {
   for (const variant of [
     ["mv ~/downloads/diag.sh ~/bin", "cd ~/bin", "chmod +x diag.sh", "./diag.sh"],
     ["cd ~/downloads", "mv diag.sh /home/cadet/bin/", "chmod 755 ~/bin/diag.sh", "cd ../bin", "./diag.sh"],
@@ -117,9 +117,61 @@ test("level 2 requires original script moved, executable, and run as ./", () => 
     run(game, variant);
     assert.ok(game.isComplete(2));
   }
+});
+
+test("level 2 explains both successful cp-only launches, then completes after removing the download and rerunning", () => {
   const game = unlocked(2);
-  run(game, ["cp ~/downloads/diag.sh ~/bin", "cd ~/bin", "chmod +x diag.sh", "./diag.sh"]);
-  assert.equal(game.isComplete(2), false);
+  assert.match(game.level.objective, /~\/bin.*no longer remains in ~\/downloads/);
+  run(game, ["cp ~/downloads/diag.sh ~/bin", "cd ~/bin", "ls -lah", "chmod +x diag.sh"]);
+  const download = `${HOME}/downloads/diag.sh`;
+  const installed = `${HOME}/bin/diag.sh`;
+  assert.notStrictEqual(game.shell.vfs.get(download), game.shell.vfs.get(installed));
+  for (const command of ["./diag.sh", "./diag.sh"]) {
+    const result = game.run(command);
+    assert.match(result.stdout, /Diagnostic passed/);
+    assert.match(result.feedback.join("\n"), /still exists at ~\/downloads\/diag\.sh/);
+    assert.equal(result.completed, false);
+    assert.equal(game.isComplete(2), false);
+    assert.ok(game.shell.vfs.get(download));
+    assert.ok(game.shell.vfs.get(installed));
+  }
+  assert.equal(game.run("rm ~/downloads/diag.sh").completed, false);
+  assert.equal(game.shell.vfs.get(download), undefined);
+  const result = game.run("./diag.sh");
+  assert.deepEqual(result.feedback, []);
+  assert.ok(result.completed);
+  assert.ok(game.isComplete(2));
+});
+
+test("level 2 explains wrong launch directory, absolute launch and sourcing without execute permission", () => {
+  const game = unlocked(2);
+  run(game, ["mv ~/downloads/diag.sh ~/bin"]);
+  assert.match(game.run("~/bin/diag.sh").stderr, /permission denied/);
+  const sourced = game.run("source ~/bin/diag.sh");
+  assert.match(sourced.stdout, /Diagnostic passed/);
+  assert.match(sourced.feedback.join("\n"), /chmod \+x/);
+  assert.equal(sourced.completed, false);
+  run(game, ["chmod +x ~/bin/diag.sh"]);
+  const outside = game.run("./../bin/diag.sh");
+  assert.match(outside.stdout, /Diagnostic passed/);
+  assert.match(outside.feedback.join("\n"), /Change to ~\/bin/);
+  assert.equal(outside.completed, false);
+  run(game, ["cd ~/bin"]);
+  const absolute = game.run("~/bin/diag.sh");
+  assert.match(absolute.stdout, /Diagnostic passed/);
+  assert.match(absolute.feedback.join("\n"), /Launch the installed script as \.\/diag\.sh/);
+  assert.equal(absolute.completed, false);
+  assert.ok(game.run("./diag.sh").completed);
+});
+
+test("level 2 rejects a replacement script that only prints the success message", () => {
+  const game = unlocked(2);
+  run(game, ["mv ~/downloads/diag.sh ~/bin", "cd ~/bin", "chmod +x diag.sh",
+    `echo "echo 'Diagnostic passed: simulated node is ready.'" > diag.sh`]);
+  const result = game.run("./diag.sh");
+  assert.match(result.stdout, /Diagnostic passed/);
+  assert.match(result.feedback.join("\n"), /diagnostic script, unchanged/);
+  assert.equal(result.completed, false);
 });
 
 test("level 3 separates stdout and stderr and extracts a frequency", () => {
@@ -155,8 +207,25 @@ test("level 4 requires PATH, exported demo key, and invocation by name", () => {
     assert.ok(game.isComplete(4));
   }
   const game = unlocked(4);
-  run(game, ['export PATH="$PATH:$HOME/.local/bin"', "export AGENT_API_KEY=hkust-demo", "~/.local/bin/asc-agent --status"]);
+  run(game, ['export PATH="$PATH:$HOME/.local/bin"', "export AGENT_API_KEY=hkust-demo"]);
+  const direct = game.run("~/.local/bin/asc-agent --status");
+  assert.match(direct.stdout, /Demo environment verified/);
+  assert.match(direct.feedback.join("\n"), /without a path/);
   assert.equal(game.isComplete(4), false);
+  run(game, ["cp ~/.local/bin/asc-agent /tmp/agent", "mv /tmp/agent ~/.local/bin/asc-agent"]);
+  const replacement = game.run("asc-agent --status");
+  assert.match(replacement.stdout, /Demo environment verified/);
+  assert.match(replacement.feedback.join("\n"), /Select Mission 04 again/);
+  assert.equal(replacement.completed, false);
+  assert.ok(game.select(4));
+  run(game, ['export PATH="$PATH:$HOME/.local/bin"', "export AGENT_API_KEY=hkust-demo"]);
+  assert.ok(game.run("asc-agent --status").completed);
+});
+
+test("level 3 documents that valid extraction may precede routing", () => {
+  const game = unlocked(3);
+  assert.equal(game.run("./sensor_dump 2>/dev/null | grep TARGET_FREQ").completed, false);
+  assert.ok(game.run("./sensor_dump > clean.txt 2> err.log").completed);
 });
 
 test("level 5 needs hardware inspection, PID discovery and termination", () => {

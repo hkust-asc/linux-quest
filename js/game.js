@@ -37,13 +37,15 @@ export class Game {
   run(input) {
     if (input.trim()) this.store.remember(input);
     const result = this.shell.run(input);
+    const feedback = [];
+    const report = message => feedback.push(message);
     let completed = false;
     for (const event of result.stages) {
-      if (event.code === 0 && !event.help && this.level.observe?.({ shell: this.shell, state: this.state, event, result })) {
+      if (event.code === 0 && !event.help && this.level.observe?.({ shell: this.shell, state: this.state, event, result, report })) {
         completed = this.complete() || completed;
       }
     }
-    return { ...result, completed };
+    return { ...result, feedback, completed };
   }
 
   get proposal() {

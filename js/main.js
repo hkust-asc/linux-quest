@@ -174,6 +174,7 @@ byId("command-form").addEventListener("submit", event => {
   else appendOutput(prompt + command, "typed");
   appendOutput(lastResult.stdout, "stdout");
   appendOutput(lastResult.stderr, "stderr");
+  for (const message of lastResult.feedback) appendOutput(message, "system");
   if (lastResult.completed) {
     appendOutput("Mission complete. New cards are available in the Codex.", "success");
     refreshProgress();
