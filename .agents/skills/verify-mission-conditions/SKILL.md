@@ -9,7 +9,7 @@ From the repository root run `bash formal/check.sh Mission`, then `node --test`.
 
 ## Code and step boundaries
 
-Sync commit: `f329610ed397e495b31f5849b0ee6da12e3061c7`. The filename, method, and transition map:
+Sync commit: `09260970102c4e85b71866f5c6df14c8cc380261`. The filename, method, and transition map:
 
 | Model | Implementation |
 |---|---|
